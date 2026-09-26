@@ -1,5 +1,7 @@
 # PassPlay site
 
+[![Static site validation](https://github.com/Nathan-Gomes/passplay-site/actions/workflows/validate.yml/badge.svg)](https://github.com/Nathan-Gomes/passplay-site/actions/workflows/validate.yml)
+
 Public pages for the PassPlay iOS app:
 - `index.html` — Support & Help
 - `privacy.html` — Privacy Policy
