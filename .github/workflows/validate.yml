@@ -21,5 +21,8 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Test site validator
+        run: python3 -m unittest discover -s tests -v
+
       - name: Validate static pages
         run: python3 scripts/check_site.py

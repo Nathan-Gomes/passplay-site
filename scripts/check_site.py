@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate the small static site without third-party dependencies."""
 
+from collections import Counter
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -17,10 +18,13 @@ class PageParser(HTMLParser):
         self.in_title = False
         self.description = ""
         self.main_ids: list[str] = []
+        self.ids: list[str] = []
         self.links: list[dict[str, str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = {key: value or "" for key, value in attrs}
+        if values.get("id"):
+            self.ids.append(values["id"])
         if tag == "html":
             self.lang = values.get("lang", "")
         elif tag == "title":
@@ -41,9 +45,14 @@ class PageParser(HTMLParser):
             self.title_parts.append(data)
 
 
-def validate_page(path: Path) -> list[str]:
+def parse_page(path: Path) -> PageParser:
     parser = PageParser()
     parser.feed(path.read_text(encoding="utf-8"))
+    return parser
+
+
+def validate_page(path: Path) -> list[str]:
+    parser = parse_page(path)
     errors: list[str] = []
 
     if parser.lang != "en":
@@ -57,16 +66,26 @@ def validate_page(path: Path) -> list[str]:
     if not any(link.get("href") == "#main-content" for link in parser.links):
         errors.append("page must link to #main-content for keyboard navigation")
 
+    for identifier, count in Counter(parser.ids).items():
+        if count > 1:
+            errors.append(f'duplicate id="{identifier}"')
+
     for link in parser.links:
         href = link.get("href", "")
         parsed = urlsplit(href)
         if link.get("target") == "_blank" and "noopener" not in link.get("rel", "").split():
             errors.append(f"external link must use rel=\"noopener\": {href}")
-        if not href or parsed.scheme or parsed.netloc or href.startswith("#"):
+        if not href or parsed.scheme or parsed.netloc:
             continue
-        target = path.parent / unquote(parsed.path)
+        target = path if not parsed.path else path.parent / unquote(parsed.path)
         if not target.exists():
             errors.append(f"local link does not exist: {href}")
+            continue
+        if parsed.fragment and target.suffix.lower() in {".htm", ".html"}:
+            target_parser = parser if target.resolve() == path.resolve() else parse_page(target)
+            fragment = unquote(parsed.fragment)
+            if fragment not in target_parser.ids:
+                errors.append(f"local link fragment does not exist: {href}")
 
     return errors
 
