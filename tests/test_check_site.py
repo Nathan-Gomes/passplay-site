@@ -11,6 +11,10 @@ def page(body: str) -> str:
 <head>
   <title>Test page</title>
   <meta name="description" content="Test description">
+  <link rel="canonical" href="https://example.com/">
+  <meta property="og:title" content="Test page">
+  <meta property="og:description" content="Test description">
+  <meta property="og:url" content="https://example.com/">
 </head>
 <body>
   <a href="#main-content">Skip to content</a>
@@ -66,6 +70,22 @@ class SiteValidationTests(unittest.TestCase):
         )
 
         self.assertEqual(validate_page(source), ['duplicate id="faq"'])
+
+    def test_rejects_incomplete_or_inconsistent_share_metadata(self) -> None:
+        source = self.write(
+            "index.html",
+            page("")
+            .replace('<meta property="og:title" content="Test page">', "")
+            .replace(
+                '<meta property="og:url" content="https://example.com/">',
+                '<meta property="og:url" content="https://example.com/other">',
+            ),
+        )
+
+        self.assertEqual(
+            validate_page(source),
+            ["page must define og:title", "og:url must match the canonical URL"],
+        )
 
 
 if __name__ == "__main__":

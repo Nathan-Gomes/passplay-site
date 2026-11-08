@@ -17,6 +17,8 @@ class PageParser(HTMLParser):
         self.title_parts: list[str] = []
         self.in_title = False
         self.description = ""
+        self.canonical_urls: list[str] = []
+        self.open_graph: dict[str, str] = {}
         self.main_ids: list[str] = []
         self.ids: list[str] = []
         self.links: list[dict[str, str]] = []
@@ -29,8 +31,13 @@ class PageParser(HTMLParser):
             self.lang = values.get("lang", "")
         elif tag == "title":
             self.in_title = True
-        elif tag == "meta" and values.get("name", "").lower() == "description":
-            self.description = values.get("content", "")
+        elif tag == "meta":
+            if values.get("name", "").lower() == "description":
+                self.description = values.get("content", "")
+            if values.get("property", "").lower().startswith("og:"):
+                self.open_graph[values["property"].lower()] = values.get("content", "")
+        elif tag == "link" and "canonical" in values.get("rel", "").lower().split():
+            self.canonical_urls.append(values.get("href", ""))
         elif tag == "main":
             self.main_ids.append(values.get("id", ""))
         elif tag == "a":
@@ -61,6 +68,23 @@ def validate_page(path: Path) -> list[str]:
         errors.append("page must have a non-empty title")
     if not parser.description.strip():
         errors.append("page must have a meta description")
+    if len(parser.canonical_urls) != 1:
+        errors.append("page must have exactly one canonical URL")
+    else:
+        canonical = parser.canonical_urls[0]
+        parsed_canonical = urlsplit(canonical)
+        if parsed_canonical.scheme != "https" or not parsed_canonical.netloc:
+            errors.append("canonical URL must be an absolute HTTPS URL")
+
+    for property_name in ("og:title", "og:description", "og:url"):
+        if not parser.open_graph.get(property_name, "").strip():
+            errors.append(f"page must define {property_name}")
+    if (
+        len(parser.canonical_urls) == 1
+        and parser.open_graph.get("og:url")
+        and parser.open_graph["og:url"] != parser.canonical_urls[0]
+    ):
+        errors.append("og:url must match the canonical URL")
     if parser.main_ids != ["main-content"]:
         errors.append("page must have one main landmark with id=\"main-content\"")
     if not any(link.get("href") == "#main-content" for link in parser.links):

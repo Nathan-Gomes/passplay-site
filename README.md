@@ -2,7 +2,9 @@
 
 [![Static site validation](https://github.com/Nathan-Gomes/passplay-site/actions/workflows/validate.yml/badge.svg)](https://github.com/Nathan-Gomes/passplay-site/actions/workflows/validate.yml)
 
-Public pages for the PassPlay iOS app:
+Public pages for the PassPlay iOS app, available at
+[nathan-gomes.github.io/passplay-site](https://nathan-gomes.github.io/passplay-site/):
+
 - `index.html` — Support & Help
 - `privacy.html` — Privacy Policy
 
@@ -16,5 +18,5 @@ Run the dependency-free site check before publishing:
 python3 scripts/check_site.py
 ```
 
-The check verifies page metadata, accessibility landmarks, skip links, unique element IDs,
-and local links, including same-page and cross-page fragments.
+The check verifies canonical and social metadata, accessibility landmarks, skip links,
+unique element IDs, and local links, including same-page and cross-page fragments.
