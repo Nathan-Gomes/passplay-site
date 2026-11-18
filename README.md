@@ -18,5 +18,5 @@ Run the dependency-free site check before publishing:
 python3 scripts/check_site.py
 ```
 
-The check verifies canonical and social metadata, accessibility landmarks, skip links,
-unique element IDs, and local links, including same-page and cross-page fragments.
+The check verifies canonical and social metadata, primary headings, accessibility landmarks,
+skip links, unique element IDs, and local links, including same-page and cross-page fragments.

@@ -16,6 +16,8 @@ class PageParser(HTMLParser):
         self.lang = ""
         self.title_parts: list[str] = []
         self.in_title = False
+        self.h1_parts: list[list[str]] = []
+        self.in_h1 = False
         self.description = ""
         self.canonical_urls: list[str] = []
         self.open_graph: dict[str, str] = {}
@@ -31,6 +33,9 @@ class PageParser(HTMLParser):
             self.lang = values.get("lang", "")
         elif tag == "title":
             self.in_title = True
+        elif tag == "h1":
+            self.h1_parts.append([])
+            self.in_h1 = True
         elif tag == "meta":
             if values.get("name", "").lower() == "description":
                 self.description = values.get("content", "")
@@ -46,10 +51,14 @@ class PageParser(HTMLParser):
     def handle_endtag(self, tag: str) -> None:
         if tag == "title":
             self.in_title = False
+        elif tag == "h1":
+            self.in_h1 = False
 
     def handle_data(self, data: str) -> None:
         if self.in_title:
             self.title_parts.append(data)
+        if self.in_h1:
+            self.h1_parts[-1].append(data)
 
 
 def parse_page(path: Path) -> PageParser:
@@ -66,6 +75,10 @@ def validate_page(path: Path) -> list[str]:
         errors.append("html element must declare lang=\"en\"")
     if not "".join(parser.title_parts).strip():
         errors.append("page must have a non-empty title")
+    if len(parser.h1_parts) != 1:
+        errors.append("page must have exactly one h1 heading")
+    elif not "".join(parser.h1_parts[0]).strip():
+        errors.append("page h1 heading must not be empty")
     if not parser.description.strip():
         errors.append("page must have a meta description")
     if len(parser.canonical_urls) != 1:

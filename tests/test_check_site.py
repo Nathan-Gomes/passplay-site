@@ -18,7 +18,7 @@ def page(body: str) -> str:
 </head>
 <body>
   <a href="#main-content">Skip to content</a>
-  <main id="main-content">{body}</main>
+  <main id="main-content"><h1>Test page</h1>{body}</main>
 </body>
 </html>
 """
@@ -70,6 +70,27 @@ class SiteValidationTests(unittest.TestCase):
         )
 
         self.assertEqual(validate_page(source), ['duplicate id="faq"'])
+
+    def test_rejects_missing_multiple_or_empty_primary_headings(self) -> None:
+        cases = {
+            "missing": (
+                page("").replace("<h1>Test page</h1>", ""),
+                "page must have exactly one h1 heading",
+            ),
+            "multiple": (
+                page("<h1>Another heading</h1>"),
+                "page must have exactly one h1 heading",
+            ),
+            "empty": (
+                page("").replace("<h1>Test page</h1>", "<h1> </h1>"),
+                "page h1 heading must not be empty",
+            ),
+        }
+
+        for name, (content, expected) in cases.items():
+            with self.subTest(name=name):
+                source = self.write(f"{name}.html", content)
+                self.assertIn(expected, validate_page(source))
 
     def test_rejects_incomplete_or_inconsistent_share_metadata(self) -> None:
         source = self.write(
